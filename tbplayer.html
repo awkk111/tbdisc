@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.8/plyr.css" />
+    <title>TeraBox Video Player</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0a0a24;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            background: #1a1a4e;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #ff3d00;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        #url-input, #playback-speed {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #333;
+            color: #fff;
+            font-style: italic;
+        }
+
+        button {
+            background-color: #ff3d00;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 16px;
+            margin: 5px;
+            flex: 1;
+            font-style: italic;
+        }
+
+        button:hover {
+            background-color: #e53900;
+        }
+
+        #video-player {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #debug-log {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        marquee {
+            color: #ff3d00;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>TeraBox Video Player</h1>
+    <marquee>Click "Open in Browser" to view the video in a new tab!</marquee>
+    <input type="text" id="url-input" placeholder="Enter TeraBox URL" />
+    <div class="button-group">
+        <button id="fetch-button">Fetch Video</button>
+        <button id="open-browser-button">Open in Browser</button>
+    </div>
+
+    <div id="video-player">
+        <video id="my-video" class="plyr" controls preload="auto" width="640" height="264">
+            <source id="video-source" src="" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+    </div>
+
+    <div>
+        <label for="playback-speed">Playback Speed:</label>
+        <select id="playback-speed">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+        </select>
+    </div>
+
+    <div class="button-group">
+        <button id="save-button">Save Video</button>
+        <button id="record-button">Start Recording</button>
+    </div>
+
+    <div id="debug-log"></div>
+</div>
+
+<script src="https://cdn.plyr.io/3.6.8/plyr.polyfilled.js"></script>
+<script>
+    const player = new Plyr('#my-video');
+    const debugLog = document.getElementById('debug-log');
+
+    document.getElementById('fetch-button').addEventListener('click', function() {
+        const urlInput = document.getElementById('url-input').value;
+        const surl = extractSurl(urlInput);
+
+        if (surl) {
+            const videoUrl = `https://www.1024terabox.com/sharing/embed?surl=${surl}&autoplay=true&mute=false`;
+
+            player.source = {
+                type: 'video',
+                sources: [{ src: videoUrl, type: 'video/mp4' }]
+            };
+            player.play();
+            document.getElementById('video-player').style.display = 'block';
+            logToDebug('Video loaded: ' + videoUrl);
+
+            document.getElementById('open-browser-button').onclick = function() {
+                window.location.href = videoUrl;
+            };
+
+            document.getElementById('save-button').onclick = function() {
+                const link = document.createElement('a');
+                link.href = videoUrl;
+                link.download = 'video.mp4';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                logToDebug('Video saved: video.mp4');
+            };
+
+            // Clear the input field after fetching
+            document.getElementById('url-input').value = '';
+        } else {
+            logToDebug('Invalid TeraBox URL or surl not found');
+            alert('Please enter a valid TeraBox URL containing the surl parameter.');
+        }
+    });
+
+    function extractSurl(url) {
+        const urlObj = new URL(url);
+        const params = new URLSearchParams(urlObj.search);
+        return params.get('surl');
+    }
+
+    document.getElementById('playback-speed').addEventListener('change', function() {
+        const speed = parseFloat(this.value);
+        player.speed = speed;
+        logToDebug('Playback speed set to: ' + speed + 'x');
+    });
+
+    function logToDebug(message) {
+        const timestamp = new Date().toISOString();
+        debugLog.innerHTML += `[${timestamp}] ${message}<br>`;
+        debugLog.scrollTop = debugLog.scrollHeight;
+    }
+
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    document.getElementById('record-button').addEventListener('click', async () => {
+        if (!mediaRecorder || mediaRecorder.state === "inactive") {
+            const stream = player.media.captureStream();
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'recorded-video.webm';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                recordedChunks = [];
+                logToDebug('Recording stopped and saved.');
+            };
+
+            mediaRecorder.start();
+            logToDebug('Recording started.');
+        } else {
+            mediaRecorder.stop();
+            logToDebug('Recording stopped.');
+        }
+    });
+</script>
+
+</body>
+</html>
