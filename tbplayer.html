@@ -8,8 +8,8 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #000000; /* Black background */
-            color: #ffffff; /* White text */
+            background-color: #000000;
+            color: #ffffff;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -19,15 +19,15 @@
         }
 
         .container {
-            width: 90%; /* Set the width to 90% of the viewport */
-            max-width: 1200px; /* Optional: set a max width to keep it manageable */
-            background: linear-gradient(to right, #ff3d00, #8a2be2); /* Red to blue-violet gradient */
-            color: #ffffff; /* White text inside the container */
+            width: 90%;
+            max-width: 800px;
+            background: linear-gradient(to right, #ff3d00, #8a2be2);
+            color: #ffffff;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            padding: 30px;
+            padding: 80px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 80px;
         }
 
         h1 {
@@ -35,14 +35,14 @@
             font-style: italic;
         }
 
-        #url-input, #playback-speed {
-            width: calc(100% - 24px); /* Adjusting for padding */
+        #url-input, #playback-speed, #volume-control {
+            width: calc(100% - 24px);
             padding: 12px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
-            background-color: #333; /* Dark background for inputs */
+            background-color: #333;
             color: #fff;
             font-style: italic;
         }
@@ -59,20 +59,18 @@
             font-style: italic;
         }
 
-        /* Button colors */
         #fetch-button {
-            background-color: #ff3d00; /* Red */
+            background-color: #ff3d00;
         }
 
         #open-browser-button {
-            background-color: #2196F3; /* Blue */
+            background-color: #2196F3;
         }
 
-        #save-button {
-            background-color: #9c27b0; /* Violet */
+        #save-button, #share-button {
+            background-color: #9c27b0;
         }
 
-        /* Button hover effects */
         button:hover {
             opacity: 0.8;
         }
@@ -119,6 +117,8 @@
     <div id="video-player">
         <video id="my-video" class="plyr" controls preload="auto" width="640" height="264">
             <source id="video-source" src="" type="video/mp4">
+            <source src="" type="video/webm">
+            <source src="" type="video/ogg">
             Your browser does not support HTML5 video.
         </video>
     </div>
@@ -133,9 +133,22 @@
         </select>
     </div>
 
+    <div>
+        <label for="volume-control">Volume:</label>
+        <input type="range" id="volume-control" min="0" max="1" step="0.1" value="1" />
+    </div>
+
     <div class="button-group">
         <button id="save-button">Save Video</button>
         <button id="record-button">Start Recording</button>
+        <button id="stop-record-button" style="display: none;">Stop Recording</button>
+        <button id="share-button">Share</button>
+    </div>
+
+    <div class="button-group">
+        <button id="open-vlc-button">Open in VLC</button>
+        <button id="open-potplayer-button">Open in PotPlayer</button>
+        <button id="open-kmplayer-button">Open in KMPlayer</button>
     </div>
 
     <div id="debug-log"></div>
@@ -145,29 +158,40 @@
 <script>
     const player = new Plyr('#my-video');
     const debugLog = document.getElementById('debug-log');
+    const videoSources = {
+        mp4: '',
+        webm: '',
+        ogg: ''
+    };
 
     document.getElementById('fetch-button').addEventListener('click', function() {
         const urlInput = document.getElementById('url-input').value;
         const surl = extractSurl(urlInput);
 
         if (surl) {
-            const videoUrl = `https://www.1024terabox.com/sharing/embed?surl=${surl}&autoplay=true&mute=false`;
+            videoSources.mp4 = `https://www.1024terabox.com/sharing/embed?surl=${surl}&resolution=720&format=mp4`;
+            videoSources.webm = `https://www.1024terabox.com/sharing/embed?surl=${surl}&resolution=720&format=webm`;
+            videoSources.ogg = `https://www.1024terabox.com/sharing/embed?surl=${surl}&resolution=720&format=ogg`;
 
             player.source = {
                 type: 'video',
-                sources: [{ src: videoUrl, type: 'video/mp4' }]
+                sources: [
+                    { src: videoSources.mp4, type: 'video/mp4' },
+                    { src: videoSources.webm, type: 'video/webm' },
+                    { src: videoSources.ogg, type: 'video/ogg' }
+                ]
             };
             player.play();
             document.getElementById('video-player').style.display = 'block';
-            logToDebug('Video loaded: ' + videoUrl);
+            logToDebug('Video loaded: ' + videoSources.mp4);
 
             document.getElementById('open-browser-button').onclick = function() {
-                window.location.href = videoUrl;
+                window.open(videoSources.mp4);
             };
 
             document.getElementById('save-button').onclick = function() {
                 const link = document.createElement('a');
-                link.href = videoUrl;
+                link.href = videoSources.mp4;
                 link.download = 'video.mp4';
                 document.body.appendChild(link);
                 link.click();
@@ -175,7 +199,29 @@
                 logToDebug('Video saved: video.mp4');
             };
 
-            document.getElementById('url-input').value = ''; // Clear the input field after fetching
+            document.getElementById('share-button').onclick = function() {
+                navigator.clipboard.writeText(videoSources.mp4).then(() => {
+                    alert('Video link copied to clipboard!');
+                    logToDebug('Video link copied to clipboard: ' + videoSources.mp4);
+                });
+            };
+
+            document.getElementById('open-vlc-button').onclick = function() {
+                window.location.href = `vlc://${videoSources.mp4}`;
+                logToDebug('Opening in VLC: ' + videoSources.mp4);
+            };
+
+            document.getElementById('open-potplayer-button').onclick = function() {
+                window.location.href = `potplayer://${videoSources.mp4}`;
+                logToDebug('Opening in PotPlayer: ' + videoSources.mp4);
+            };
+
+            document.getElementById('open-kmplayer-button').onclick = function() {
+                window.location.href = `kmplayer://${videoSources.mp4}`;
+                logToDebug('Opening in KMPlayer: ' + videoSources.mp4);
+            };
+
+            document.getElementById('url-input').value = '';
         } else {
             logToDebug('Invalid TeraBox URL or surl not found');
             alert('Please enter a valid TeraBox URL containing the surl parameter.');
@@ -194,6 +240,12 @@
         logToDebug('Playback speed set to: ' + speed + 'x');
     });
 
+    document.getElementById('volume-control').addEventListener('input', function() {
+        const volume = parseFloat(this.value);
+        player.volume = volume;
+        logToDebug('Volume set to: ' + volume);
+    });
+
     function logToDebug(message) {
         const timestamp = new Date().toISOString();
         debugLog.innerHTML += `[${timestamp}] ${message}<br>`;
@@ -204,34 +256,50 @@
     let recordedChunks = [];
 
     document.getElementById('record-button').addEventListener('click', async () => {
-        if (!mediaRecorder || mediaRecorder.state === "inactive") {
-            const stream = player.media.captureStream();
-            mediaRecorder = new MediaRecorder(stream);
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+        });
+        mediaRecorder = new MediaRecorder(stream);
 
-            mediaRecorder.ondataavailable = event => {
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                }
-            };
+        mediaRecorder.ondataavailable = event => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'recorded-video.webm';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                recordedChunks = [];
-                logToDebug('Recording stopped and saved.');
-            };
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'screen-recording.webm';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            recordedChunks = [];
+            logToDebug('Screen recording stopped and saved.');
+        };
 
-            mediaRecorder.start();
-            logToDebug('Recording started.');
-        } else {
+        mediaRecorder.start();
+        document.getElementById('record-button').style.display = 'none';
+        document.getElementById('stop-record-button').style.display = 'block';
+        logToDebug('Screen recording started.');
+
+        document.getElementById('stop-record-button').onclick = () => {
             mediaRecorder.stop();
-            logToDebug('Recording stopped.');
+            document.getElementById('stop-record-button').style.display = 'none';
+            document.getElementById('record-button').style.display = 'block';
+            logToDebug('Screen recording stopped.');
+        };
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+            event.preventDefault();
+            player.playing ? player.pause() : player.play();
+            logToDebug('Video ' + (player.playing ? 'paused' : 'playing'));
         }
     });
 </script>
