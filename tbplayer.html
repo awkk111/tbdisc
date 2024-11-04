@@ -8,8 +8,8 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0a0a24;
-            color: #ffffff;
+            background-color: #000000; /* Black background */
+            color: #ffffff; /* White text */
             margin: 0;
             padding: 20px;
             display: flex;
@@ -19,8 +19,10 @@
         }
 
         .container {
-            max-width: 100%;
-            background: #1a1a4e;
+            width: 90%; /* Set the width to 90% of the viewport */
+            max-width: 1200px; /* Optional: set a max width to keep it manageable */
+            background: linear-gradient(to right, #ff3d00, #8a2be2); /* Red to blue-violet gradient */
+            color: #ffffff; /* White text inside the container */
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
             padding: 30px;
@@ -29,39 +31,50 @@
         }
 
         h1 {
-            color: #ff3d00;
             margin-bottom: 20px;
             font-style: italic;
         }
 
         #url-input, #playback-speed {
-            width: 100%;
+            width: calc(100% - 24px); /* Adjusting for padding */
             padding: 12px;
             margin: 10px 0;
             border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
-            background-color: #333;
+            background-color: #333; /* Dark background for inputs */
             color: #fff;
             font-style: italic;
         }
 
         button {
-            background-color: #ff3d00;
-            color: white;
             padding: 12px 20px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: opacity 0.3s;
             font-size: 16px;
             margin: 5px;
             flex: 1;
             font-style: italic;
         }
 
+        /* Button colors */
+        #fetch-button {
+            background-color: #ff3d00; /* Red */
+        }
+
+        #open-browser-button {
+            background-color: #2196F3; /* Blue */
+        }
+
+        #save-button {
+            background-color: #9c27b0; /* Violet */
+        }
+
+        /* Button hover effects */
         button:hover {
-            background-color: #e53900;
+            opacity: 0.8;
         }
 
         #video-player {
@@ -162,8 +175,7 @@
                 logToDebug('Video saved: video.mp4');
             };
 
-            // Clear the input field after fetching
-            document.getElementById('url-input').value = '';
+            document.getElementById('url-input').value = ''; // Clear the input field after fetching
         } else {
             logToDebug('Invalid TeraBox URL or surl not found');
             alert('Please enter a valid TeraBox URL containing the surl parameter.');
